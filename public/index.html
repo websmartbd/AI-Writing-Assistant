@@ -250,6 +250,73 @@
             color: var(--text-color);
             opacity: 0.7;
         }
+        .suggestion-text {
+            color: #666;
+            font-style: italic;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            background-color: #f0f0f0;
+        }
+        .suggestion-text:hover {
+            background-color: #e0e0e0;
+        }
+        .suggestion-text.error {
+            color: #ff0000;
+            background-color: #ffe6e6;
+        }
+        .suggestion-text.loading {
+            color: #666;
+            background-color: #f8f8f8;
+        }
+        .dark-mode .suggestion-text {
+            color: #aaa;
+            background-color: #2a2a2a;
+        }
+        .dark-mode .suggestion-text:hover {
+            background-color: #3a3a3a;
+        }
+        .dark-mode .suggestion-text.error {
+            color: #ff6b6b;
+            background-color: #3a1a1a;
+        }
+        /* Styles for the Accept button */
+        .accept-suggestion-btn {
+            /* Reset default button styles first */
+            background: none;
+            border: none;
+            margin: 0;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+            outline: inherit; /* Inherit outline style */
+            
+            /* Apply your custom styles */
+            display: inline-block;
+            background-color: #007bff; /* Primary blue */
+            color: white;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-style: normal;
+            margin-left: 10px;
+            vertical-align: middle;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            line-height: normal;
+        }
+        .accept-suggestion-btn:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        /* Dark mode adjustments */
+        .dark-mode .accept-suggestion-btn {
+            background-color: #6a0dad; /* Purple for dark mode */
+        }
+        .dark-mode .accept-suggestion-btn:hover {
+            background-color: #8a2be2; /* Lighter purple on hover */
+        }
     </style>
     <script>
         // Apply theme preference immediately to prevent flash of unstyled content
@@ -359,7 +426,7 @@
                 </button>
                 
                 <button id="getSuggestionBtn" class="btn w-32 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex items-center justify-center gap-2">
-                    <i class="fas fa-lightbulb"></i> Get New
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Get New
                 </button>
             </div>
         </div>

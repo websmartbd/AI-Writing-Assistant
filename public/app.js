@@ -128,7 +128,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update word count on input
     storyContent.addEventListener('input', function() {
-        updateWordCount();
+        removeExistingSuggestions(); // Clear suggestions when user types
+        updateWordCount(); // Update word count immediately on input
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(getSuggestion, 1000);
     });
 
     // Function to get AI suggestion
@@ -141,25 +144,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const title = document.getElementById('storyTitle').value.trim();
         const apiKey = apiKeyInput.value.trim();
         
+        // Remove any existing suggestions (including loading/error messages) before adding new ones
+        removeExistingSuggestions();
+        
         if (!apiKey) {
-            suggestion.textContent = 'Please enter your Google AI API key in settings';
-            suggestion.classList.remove('hidden');
-            acceptSuggestionBtn.classList.add('hidden');
+            appendSuggestion('Please enter your Google AI API key in settings', 'error');
             return;
         }
         
-        if (!content) {
-            suggestion.textContent = 'Start writing to get suggestions...';
-            suggestion.classList.remove('hidden');
-            acceptSuggestionBtn.classList.add('hidden');
+        // Only show "Start writing..." if the editor is completely empty (no text and no hidden elements like <br>)
+        if (!content && storyContent.innerHTML.trim() === '') {
+            appendSuggestion('Start writing to get suggestions...', 'info');
             return;
         }
 
         try {
             isProcessing = true;
-            suggestion.textContent = 'Getting suggestion...';
-            suggestion.classList.remove('hidden');
-            acceptSuggestionBtn.classList.add('hidden');
+            appendSuggestion('Getting suggestion...', 'loading');
 
             const response = await fetch('/api/suggest', {
                 method: 'POST',
@@ -186,57 +187,152 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error);
             }
             
+            // Remove loading message after fetching data
+            removeExistingSuggestions();
+            
             if (data.isLanguageSupported) {
-                suggestion.textContent = data.suggestion;
-                suggestion.classList.remove('hidden');
-                acceptSuggestionBtn.classList.remove('hidden');
+                appendSuggestion(data.suggestion, 'suggestion');
             } else {
-                suggestion.textContent = 'Language not supported';
-                suggestion.classList.remove('hidden');
-                acceptSuggestionBtn.classList.add('hidden');
+                appendSuggestion('Language not supported', 'error');
             }
         } catch (error) {
             console.error('Error:', error);
-            suggestion.textContent = `Error: ${error.message || 'Failed to get suggestion. Please try again.'}`;
-            suggestion.classList.remove('hidden');
-            acceptSuggestionBtn.classList.add('hidden');
+            removeExistingSuggestions(); // Remove any previous loading/info messages
+            appendSuggestion(`Error: ${error.message || 'Failed to get suggestion. Please try again.'}`, 'error');
         } finally {
             isProcessing = false;
         }
     }
 
-    // Debounced input handler
-    storyContent.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(getSuggestion, 1000);
+    // Helper function to remove all suggestion-related spans
+    function removeExistingSuggestions() {
+        const suggestions = storyContent.getElementsByClassName('suggestion-text');
+        while (suggestions.length > 0) {
+            suggestions[0].remove();
+        }
+    }
+
+    // Helper function to append suggestions inline at the current cursor position
+    function appendSuggestion(text, type) {
+        const suggestionContainerSpan = document.createElement('span');
+        suggestionContainerSpan.className = `suggestion-text ${type}`;
+        suggestionContainerSpan.contentEditable = 'false'; // The whole container is not editable
+
+        // Create the span for the suggestion text itself
+        const suggestionContentSpan = document.createElement('span');
+        suggestionContentSpan.textContent = text;
+        suggestionContentSpan.className = 'suggestion-content'; // To identify the text part
+        suggestionContainerSpan.appendChild(suggestionContentSpan);
+
+        // Only add an accept button if the type is 'suggestion'
+        if (type === 'suggestion') {
+            // Add a space before the button if the suggestion text exists and doesn't end with space/newline
+            if (text.length > 0 && !text.endsWith(' ') && !text.endsWith('\n')) {
+                suggestionContainerSpan.appendChild(document.createTextNode(' '));
+            }
+
+            const acceptButton = document.createElement('button'); // Changed to BUTTON element
+            acceptButton.textContent = 'Accept';
+            acceptButton.className = 'accept-suggestion-btn'; // Class to identify the button
+            acceptButton.type = 'button'; // Prevent form submission if editor is inside a form
+            
+            suggestionContainerSpan.appendChild(acceptButton);
+        }
+
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            
+            // Ensure the range is within storyContent before inserting
+            if (!storyContent.contains(range.commonAncestorContainer)) {
+                // If selection is outside storyContent (e.g., clicked elsewhere), append to end
+                storyContent.appendChild(suggestionContainerSpan);
+                range.selectNodeContents(storyContent);
+                range.collapse(false); // Move cursor to end
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // Collapse the range to the end point to insert at cursor
+                range.collapse(false); 
+                range.insertNode(suggestionContainerSpan);
+
+                // After insertion, move the cursor back *before* the inserted suggestion
+                // so the user can continue typing normally before the suggestion, or click it.
+                range.setStartBefore(suggestionContainerSpan); // Set start point before the newly inserted span
+                range.collapse(true); // Collapse the range to that point
+                selection.removeAllRanges();
+                selection.addRange(range);
+                storyContent.focus(); // Ensure the editor has focus
+            }
+        } else {
+            // Fallback: if no selection/range (e.g., editor just loaded, or no focus), append to end
+            storyContent.appendChild(suggestionContainerSpan);
+            // Cursor placement for fallback
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(storyContent);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            storyContent.focus();
+        }
+        updateWordCount(); // Update word count after adding suggestion (will exclude it)
+    }
+
+    // Modified event listener for handling suggestion acceptance
+    storyContent.addEventListener('click', function(e) {
+        if (e.target.classList.contains('accept-suggestion-btn')) {
+            const clickedElement = e.target;
+            const suggestionContainerSpan = clickedElement.closest('.suggestion-text');
+            
+            if (suggestionContainerSpan) {
+                const suggestionContentSpan = suggestionContainerSpan.querySelector('.suggestion-content');
+                if (suggestionContentSpan) {
+                    const suggestionText = suggestionContentSpan.textContent;
+                    const parent = suggestionContainerSpan.parentNode;
+
+                    const newTextNode = document.createTextNode(suggestionText);
+                    
+                    parent.replaceChild(newTextNode, suggestionContainerSpan);
+                    
+                    const range = document.createRange();
+                    const sel = window.getSelection();
+                    range.setStartAfter(newTextNode);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    storyContent.focus();
+
+                    updateWordCount();
+                }
+            }
+        }
     });
 
     // Manual get suggestion button
-    getSuggestionBtn.addEventListener('click', getSuggestion);
-
-    // Accept suggestion
-    acceptSuggestionBtn.addEventListener('click', function() {
-        const currentText = storyContent.textContent;
-        storyContent.textContent = currentText + ' ' + suggestion.textContent;
-        suggestion.classList.add('hidden');
-        acceptSuggestionBtn.classList.add('hidden');
-        updateWordCount();
+    getSuggestionBtn.addEventListener('click', function() {
+        removeExistingSuggestions(); // Clear existing suggestions before getting new ones
+        getSuggestion();
     });
 
     // Clear all content
     clearAllBtn.addEventListener('click', function() {
         if (confirm('Are you sure you want to clear all content?')) {
-            storyContent.textContent = '';
-            suggestion.textContent = '';
-            suggestion.classList.add('hidden');
-            acceptSuggestionBtn.classList.add('hidden');
+            storyContent.innerHTML = ''; // Clear all HTML content to remove any hidden nodes
             document.getElementById('storyTitle').value = '';
             languageSelect.value = 'English';
             updateWordCount();
+            storyContent.focus(); // Put focus back on the editor
         }
     });
 
     // Handle category and language changes
-    storyCategory.addEventListener('change', getSuggestion);
-    languageSelect.addEventListener('change', getSuggestion);
+    storyCategory.addEventListener('change', function() {
+        removeExistingSuggestions(); // Clear existing suggestions
+        getSuggestion();
+    });
+    languageSelect.addEventListener('change', function() {
+        removeExistingSuggestions(); // Clear existing suggestions
+        getSuggestion();
+    });
 });
