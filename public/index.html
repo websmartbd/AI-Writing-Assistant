@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Writing Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --notepad-bg: #fff;
+            --notepad-line: #e5e5e5;
+            --suggestion-bg: #fafafa;
+            --suggestion-border: #99CCFF;
+            --title-color: #1a1a1a;
+            --input-bg: #fff;
+            --input-border: #e0e0e0;
+            --panel-bg: #fff;
+            --subtitle-color: #6B7280;
+            --body-bg-image: radial-gradient(#e0e0e0 1px, transparent 1px), radial-gradient(#e0e0e0 1px, transparent 1px);
+            --body-bg-color: #f8f9fa;
+        }
+        
+        html.dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --notepad-bg: #2a2a2a;
+            --notepad-line: #444;
+            --suggestion-bg: #333;
+            --suggestion-border: #6B99FF;
+            --title-color: #f0f0f0;
+            --input-bg: #2a2a2a;
+            --input-border: #444;
+            --panel-bg: #2a2a2a;
+            --subtitle-color: #9CA3AF;
+            --body-bg-image: radial-gradient(#333 1px, transparent 1px), radial-gradient(#333 1px, transparent 1px);
+            --body-bg-color: #1a1a1a;
+        }
+        
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            background-color: var(--body-bg-color);
+            background-image: var(--body-bg-image);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            color: var(--text-color);
+        }
+        
+        html.dark-mode body {
+            background-image: 
+                radial-gradient(#333 1px, transparent 1px),
+                radial-gradient(#333 1px, transparent 1px);
+            background-color: #1a1a1a;
+        }
+        
+        .app-title {
+            font-family: 'Playfair Display', serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            color: var(--title-color);
+        }
+        
+        .subtitle {
+            color: var(--subtitle-color);
+        }
+        
+        .title-section {
+            background: var(--panel-bg) !important;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .title-section:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .title-section label {
+            color: var(--text-color);
+        }
+        
+        .notepad {
+            background: var(--notepad-bg);
+            background-image: 
+                linear-gradient(var(--notepad-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--notepad-line) 1px, transparent 1px);
+            background-size: 100% 2em;
+            background-attachment: local;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .notepad:hover {
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            transform: translateY(-5px);
+        }
+        .notepad::before {
+            content: '';
+            position: absolute;
+            left: 40px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #99CCFF;
+        }
+        #editor {
+            font-size: 1.1rem;
+            line-height: 2em;
+            padding-left: 3.5rem;
+            padding-right: 2rem;
+            background: transparent !important;
+            min-height: 500px;
+            transition: all 0.3s ease;
+        }
+        #editor:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        #editor:empty:before {
+            content: attr(placeholder);
+            color: #aaa;
+            font-style: italic;
+        }
+        .suggestion {
+            color: var(--text-color);
+            font-style: italic;
+            border-left: 4px solid var(--suggestion-border);
+            background: var(--suggestion-bg);
+            padding-left: 1rem;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .suggestion:hover {
+            background: var(--suggestion-bg);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.08);
+        }
+        .category-option {
+            transition: all 0.3s ease;
+        }
+        .category-option:hover {
+            transform: translateY(-2px);
+        }
+        .btn {
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .options-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: var(--panel-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.4s ease;
+            color: #FDB813;
+        }
+        .theme-toggle:hover {
+            background: var(--input-border);
+            color: var(--bg-color);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .theme-toggle i {
+            transition: color 0.3s ease;
+        }
+        .theme-toggle i.fa-sun {
+            color: #FDB813; /* Sun color */
+        }
+        .theme-toggle i.fa-moon {
+            color: var(--text-color); /* Moon color, adapts to theme */
+        }
+        html.dark-mode .theme-toggle {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            /* Remove explicit color here as it's now handled by icon class */
+        }
+        html.dark-mode .theme-toggle:hover {
+            background: var(--notepad-line);
+            color: var(--text-color);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        .word-count {
+            font-size: 0.8rem;
+            color: #6B7280;
+            text-align: right;
+            padding: 0.5rem;
+        }
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff9999, #ff6b6b);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        input, select {
+            background-color: var(--input-bg) !important;
+            border-color: var(--input-border) !important;
+            color: var(--text-color) !important;
+        }
+        input::placeholder {
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+    </style>
+    <script>
+        // Apply theme preference immediately to prevent flash of unstyled content
+        (function() {
+            const savedTheme = localStorage.getItem('themePreference');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+            }
+        })();
+    </script>
+</head>
+<body class="min-h-screen py-8">
+    <div class="theme-toggle" id="themeToggle">
+        <i class="fas fa-sun"></i>
+    </div>
+
+    <div class="container mx-auto px-4 sm:px-6">
+        <h1 class="text-4xl font-bold text-center mb-2 text-white-800 app-title">AI Writing Assistant</h1>
+        <p class="text-center text-gray-600 mb-8 subtitle">Craft your story with intelligent AI assistance</p>
+        
+        <div class="max-w-4xl mx-auto">
+            <!-- Options Panel -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6 transition-all duration-300 hover:shadow-lg title-section">
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Title Input with Settings Icon -->
+                    <div class="flex items-center gap-4">
+                        <div class="flex-grow">
+                            <label class="block text-sm font-medium mb-1">Title</label>
+                            <input type="text" id="storyTitle" placeholder="Enter story title" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                        </div>
+                        <button id="settingsToggle" class="mt-6 p-3 text-gray-600 hover:text-blue-500 transition-colors bg-gray-100 hover:bg-gray-200 rounded-full">
+                            <i class="fas fa-cog text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Collapsible Settings Panel -->
+                    <div id="settingsPanel" class="hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200 mt-4">
+                            <!-- Story Category -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Story Category</label>
+                                <select id="storyCategory" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                                    <option value="general">General</option>
+                                    <option value="fantasy">Fantasy</option>
+                                    <option value="scifi">Science Fiction</option>
+                                    <option value="mystery">Mystery</option>
+                                    <option value="romance">Romance</option>
+                                    <option value="horror">Horror</option>
+                                    <option value="adventure">Adventure</option>
+                                    <option value="comedy">Comedy</option>
+                                    <option value="drama">Drama</option>
+                                    <option value="thriller">Thriller</option>
+                                    <option value="historical">Historical Fiction</option>
+                                    <option value="children">Children's Story</option>
+                                </select>
+                            </div>
+                            <!-- Language Selection -->
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Language</label>
+                                <select id="language" class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                                    <option value="English">English</option>
+                                    <option value="বাংলা (Bangla)">বাংলা (Bangla)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- API Key Input -->
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium mb-2">Google AI API Key</label>
+                            <div class="relative">
+                                <input type="password" id="apiKey" placeholder="Enter your Google AI API key" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300">
+                                <button id="toggleApiKey" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" class="text-blue-500 hover:underline">Google AI Studio</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notepad Section -->
+            <div class="notepad rounded-lg p-2">
+                <div class="word-count text-right mb-2" id="wordCount">0 words</div>
+                <div id="editor" class="p-6" 
+                     contenteditable="true" 
+                     spellcheck="true"
+                     placeholder="Start writing your story here..."></div>
+            </div>
+            
+            <!-- Suggestion Section -->
+            <div id="suggestion" class="mt-6 p-4 rounded suggestion hidden"></div>
+            
+            <!-- Buttons -->
+            <div class="mt-6 flex justify-between items-center">
+                <button id="clearAllBtn" class="btn w-32 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+                
+                <button id="acceptSuggestionBtn" class="hidden w-32 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-check"></i>
+                    Accept
+                </button>
+                
+                <button id="getSuggestionBtn" class="btn w-32 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-lightbulb"></i> Get New
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 text-gray-600 text-sm">
+            <p>AI-powered writing assistant to help you create amazing stories</p>
+            <div class="mt-4 flex justify-center gap-4">
+                <a href="#" class="text-gray-500 hover:text-blue-500 transition-colors">
+                    <i class="fab fa-github text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-blue-500 transition-colors">
+                    <i class="fab fa-twitter text-xl"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-blue-500 transition-colors">
+                    <i class="fab fa-linkedin text-xl"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
