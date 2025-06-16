@@ -27,7 +27,7 @@ An intelligent writing assistant powered by Google's Generative AI that helps yo
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://ai-writing-assistant.onrender.com)
+[View Live Demo](https://ai-writing-assistants.onrender.com)
 
 ## 🛠️ Technologies Used
 
