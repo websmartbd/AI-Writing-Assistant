@@ -27,7 +27,7 @@ An intelligent writing assistant powered by Google's Generative AI that helps yo
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://your-render-app-url.onrender.com)
+[View Live Demo](https://ai-writing-assistant.onrender.com)
 
 ## 🛠️ Technologies Used
 
@@ -54,8 +54,8 @@ An intelligent writing assistant powered by Google's Generative AI that helps yo
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/ai-writing-assistant.git
-   cd ai-writing-assistant
+   git clone https://github.com/websmartbd/AI-Writing-Assistan.git
+   cd AI-Writing-Assistan
    ```
 
 2. Install dependencies:
@@ -143,9 +143,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
+WebSmartBD - [@websmartbd](https://github.com/websmartbd)
+Instagram - [@bmshifat](https://instagram.com/bmshifat)
 
-Project Link: [https://github.com/yourusername/ai-writing-assistant](https://github.com/yourusername/ai-writing-assistant)
+Project Link: [https://github.com/websmartbd/AI-Writing-Assistan](https://github.com/websmartbd/AI-Writing-Assistan)
 
 ## ⭐ Show your support
 
